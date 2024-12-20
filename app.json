@@ -3,7 +3,6 @@
     "name": "TellMe",
     "slug": "TellMe",
     "version": "1.0.0",
-
     "scheme": "TellMe",
     "web": {
       "bundler": "metro",
@@ -21,21 +20,20 @@
     ],
     "experiments": {
       "typedRoutes": true,
-
       "tsconfigPaths": true
     },
-
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-
     "userInterfaceStyle": "light",
-
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true
     },
@@ -43,6 +41,15 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
+      },
+      "package": "com.simpledandy.TellMe"
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "5f4b3084-0fdc-4807-8772-f9a80ec91d3e"
       }
     }
   }
