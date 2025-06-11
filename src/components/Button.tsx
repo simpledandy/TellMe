@@ -1,4 +1,4 @@
-import { Pressable, Text, PressableProps } from 'react-native';
+import { Pressable, Text, PressableProps, StyleSheet, ViewStyle, TextStyle, StyleProp } from 'react-native';
 import { cn } from '../utils/cn';
 import { useTheme } from '../contexts/ThemeContext';
 import { colors } from '../theme/colors';
@@ -6,49 +6,65 @@ import { colors } from '../theme/colors';
 type ButtonVariant = 'primary' | 'secondary' | 'text';
 type ButtonSize = 'sm' | 'md' | 'lg';
 
-interface ButtonProps extends PressableProps {
+interface ButtonProps extends Omit<PressableProps, 'style'> {
   variant?: ButtonVariant;
   size?: ButtonSize;
   title: string;
   loading?: boolean;
+  style?: StyleProp<ViewStyle>;
 }
 
-const getVariantStyles = (variant: ButtonVariant, isDark: boolean) => {
+const getVariantStyles = (variant: ButtonVariant, isDark: boolean): ViewStyle => {
   const theme = isDark ? colors.dark : colors.light;
   
   switch (variant) {
     case 'primary':
-      return `bg-[${theme.accent.primary}] active:bg-[${theme.accent.secondary}]`;
+      return {
+        backgroundColor: theme.accent.primary,
+        borderColor: theme.accent.primary,
+      };
     case 'secondary':
-      return `bg-[${theme.background.secondary}] active:bg-[${theme.border.primary}]`;
+      return {
+        backgroundColor: theme.background.secondary,
+        borderColor: theme.border.primary,
+      };
     case 'text':
-      return `bg-transparent active:bg-[${theme.background.secondary}]`;
+      return {
+        backgroundColor: 'transparent',
+        borderColor: 'transparent',
+      };
   }
 };
 
-const getTextStyles = (variant: ButtonVariant, isDark: boolean) => {
+const getTextStyles = (variant: ButtonVariant, isDark: boolean): TextStyle => {
   const theme = isDark ? colors.dark : colors.light;
   
   switch (variant) {
     case 'primary':
-      return `text-[${theme.text.primary}]`;
+      return {
+        color: theme.text.primary,
+      };
     case 'secondary':
-      return `text-[${theme.text.secondary}]`;
+      return {
+        color: theme.text.secondary,
+      };
     case 'text':
-      return `text-[${theme.accent.primary}]`;
+      return {
+        color: theme.accent.primary,
+      };
   }
 };
 
-const sizeStyles = {
-  sm: 'py-2 px-4',
-  md: 'py-3 px-6',
-  lg: 'py-4 px-8',
+const sizeStyles: Record<ButtonSize, ViewStyle> = {
+  sm: { paddingVertical: 8, paddingHorizontal: 16 },
+  md: { paddingVertical: 12, paddingHorizontal: 24 },
+  lg: { paddingVertical: 16, paddingHorizontal: 32 },
 };
 
-const textSizeStyles = {
-  sm: 'text-sm',
-  md: 'text-base',
-  lg: 'text-lg',
+const textSizeStyles: Record<ButtonSize, TextStyle> = {
+  sm: { fontSize: 14 },
+  md: { fontSize: 16 },
+  lg: { fontSize: 18 },
 };
 
 export function Button({
@@ -58,6 +74,7 @@ export function Button({
   loading = false,
   className,
   disabled,
+  style,
   ...props
 }: ButtonProps) {
   const { isDark } = useTheme();
@@ -66,20 +83,23 @@ export function Button({
     <Pressable
       className={cn(
         'rounded-lg items-center justify-center',
-        getVariantStyles(variant, isDark),
-        sizeStyles[size],
         disabled && 'opacity-50',
         className
       )}
+      style={[
+        getVariantStyles(variant, isDark),
+        sizeStyles[size],
+        style,
+      ]}
       disabled={disabled || loading}
       {...props}
     >
       <Text
-        className={cn(
-          'font-medium text-center',
+        className="font-medium text-center"
+        style={[
           getTextStyles(variant, isDark),
-          textSizeStyles[size]
-        )}
+          textSizeStyles[size],
+        ]}
       >
         {loading ? 'Loading...' : title}
       </Text>

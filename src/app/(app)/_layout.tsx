@@ -16,24 +16,21 @@ export default function AppLayout() {
         headerStyle: {
           backgroundColor: colors[isDark ? 'dark' : 'light'].background.primary,
         },
+        headerTintColor: colors[isDark ? 'dark' : 'light'].text.primary,
         headerShadowVisible: false,
-        headerTitleStyle: {
-          fontWeight: '600',
-          color: colors[isDark ? 'dark' : 'light'].text.primary,
-        },
         headerRight: () => (
-          <View className="flex-row items-center">
+          <View className="flex-row items-center gap-4">
             <ThemeToggle />
-            <Pressable 
+            <Pressable
               onPress={() => router.push('/feed')}
-              className="mx-4"
+              className="px-2"
             >
-              <Text style={{ color: colors[isDark ? 'dark' : 'light'].accent.primary }}>
-                View Feed
-              </Text>
             </Pressable>
             {user && (
-              <Pressable onPress={signOut} className="mr-4">
+              <Pressable
+                onPress={signOut}
+                className="px-2"
+              >
                 <Text style={{ color: colors[isDark ? 'dark' : 'light'].accent.primary }}>
                   Sign Out
                 </Text>
@@ -43,13 +40,13 @@ export default function AppLayout() {
         ),
       }}
     >
-      <Stack.Screen 
+      <Stack.Screen
         name="index"
         options={{
           headerShown: false,
         }}
       />
-      <Stack.Screen 
+      <Stack.Screen
         name="feed"
         options={{
           title: 'Feed',

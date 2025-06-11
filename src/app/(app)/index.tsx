@@ -22,132 +22,115 @@ interface AlertModal {
   }[];
 }
 
-export default function Main() {
-  const [inputText, setInputText] = useState('');
+export default function MainScreen() {
   const [isEditing, setIsEditing] = useState(false);
-  const { user } = useAuth();
+  const [inputText, setInputText] = useState('');
   const [fadeAnim] = useState(new Animated.Value(1));
   const router = useRouter();
-  const { theme, isDark } = useTheme();
+  const { isDark } = useTheme();
+  const { user } = useAuth();
 
   const [alertModal, setAlertModal] = useState<AlertModal>({
     visible: false,
     title: '',
     message: '',
+    buttons: [],
   });
-
-  const showAlert = (title: string, message: string, buttons?: AlertModal['buttons']) => {
-    setAlertModal({
-      visible: true,
-      title,
-      message,
-      buttons,
-    });
-  };
-
-  const hideAlert = () => {
-    setAlertModal(prev => ({ ...prev, visible: false }));
-  };
-
-  const handleShare = async () => {
-    try {
-      if (!user) {
-        showAlert(
-          'Sign in to Share',
-          'You need to sign in to share your problems.',
-          [
-            {
-              text: 'Sign In',
-              onPress: () => {
-                hideAlert();
-                router.push({
-                  pathname: '/auth/sign-in',
-                  params: { share: 'true' }
-                });
-              },
-              style: 'default',
-            },
-            {
-              text: 'Sign Up',
-              onPress: () => {
-                hideAlert();
-                router.push({
-                  pathname: '/auth/sign-up',
-                  params: { share: 'true' }
-                });
-              },
-              style: 'default',
-            },
-            {
-              text: 'Cancel',
-              onPress: hideAlert,
-              style: 'cancel',
-            },
-          ]
-        );
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from('problems')
-        .insert([
-          { 
-            description: inputText,
-            user_id: user.id
-          }
-        ])
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error inserting problem:', error);
-        showAlert('Error', 'Failed to share your problem. Please try again.');
-      } else {
-        console.log('Problem shared:', data);
-        setInputText('');
-        setIsEditing(false);
-        // Fade in the welcome screen
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 500,
-          useNativeDriver: true,
-        }).start();
-        
-        // Show success message
-        showAlert(
-          'Success',
-          'Your problem has been shared!',
-          [
-            {
-              text: 'View Feed',
-              onPress: () => {
-                hideAlert();
-                router.push('/feed');
-              },
-              style: 'default',
-            },
-            {
-              text: 'Stay Here',
-              onPress: hideAlert,
-              style: 'cancel',
-            },
-          ]
-        );
-      }
-    } catch (error) {
-      console.error('Unexpected error:', error);
-      showAlert('Error', 'An unexpected error occurred. Please try again.');
-    }
-  };
 
   const startEditing = () => {
     setIsEditing(true);
-    // Fade out the welcome screen
-    Animated.timing(fadeAnim, {
-      toValue: 0,
-      duration: 300,
-      useNativeDriver: true,
-    }).start();
+  };
+
+  const resetScreen = () => {
+    setIsEditing(false);
+    setInputText('');
+  };
+
+  const handleShare = async () => {
+    if (!user) {
+      setAlertModal({
+        visible: true,
+        title: 'Sign In Required',
+        message: 'Please sign in to share your problem.',
+        buttons: [
+          {
+            text: 'Cancel',
+            onPress: () => {
+              setAlertModal({ ...alertModal, visible: false });
+              resetScreen();
+            },
+            style: 'cancel',
+          },
+          {
+            text: 'Sign In',
+            onPress: () => {
+              setAlertModal({ ...alertModal, visible: false });
+              router.push('/auth/sign-in?share=true');
+            },
+            style: 'default',
+          },
+        ],
+      });
+      return;
+    }
+
+    if (!inputText.trim()) {
+      setAlertModal({
+        visible: true,
+        title: 'Empty Problem',
+        message: 'Please enter your problem before sharing.',
+        buttons: [
+          {
+            text: 'OK',
+            onPress: () => setAlertModal({ ...alertModal, visible: false }),
+            style: 'default',
+          },
+        ],
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('problems')
+        .insert([
+          {
+            description: inputText.trim(),
+            user_id: user.id,
+          },
+        ]);
+
+      if (error) throw error;
+
+      setAlertModal({
+        visible: true,
+        title: 'Success!',
+        message: 'Your problem has been shared.',
+        buttons: [
+          {
+            text: 'OK',
+            onPress: () => {
+              setAlertModal({ ...alertModal, visible: false });
+              resetScreen();
+            },
+            style: 'default',
+          },
+        ],
+      });
+    } catch (error) {
+      setAlertModal({
+        visible: true,
+        title: 'Error',
+        message: 'Failed to share your problem. Please try again.',
+        buttons: [
+          {
+            text: 'OK',
+            onPress: () => setAlertModal({ ...alertModal, visible: false }),
+            style: 'default',
+          },
+        ],
+      });
+    }
   };
 
   const goToFeed = () => {
@@ -225,7 +208,12 @@ export default function Main() {
         visible={alertModal.visible}
         title={alertModal.title}
         message={alertModal.message}
-        onClose={hideAlert}
+        onClose={() => {
+          setAlertModal({ ...alertModal, visible: false });
+          if (alertModal.title === 'Sign In Required') {
+            resetScreen();
+          }
+        }}
         buttons={alertModal.buttons}
       />
     </KeyboardAvoidingView>
