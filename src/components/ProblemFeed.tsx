@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, RefreshControl, ActivityIndicator } from 'react-native';
 import { supabase } from '~/utils/supabase';
+import { useTheme } from '~/src/contexts/ThemeContext';
+import { colors } from '~/src/theme/colors';
 
 type Problem = {
   id: string;
@@ -15,6 +17,7 @@ export function ProblemFeed() {
   const [problems, setProblems] = useState<Problem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const { isDark } = useTheme();
 
   const fetchProblems = async () => {
     try {
@@ -54,8 +57,8 @@ export function ProblemFeed() {
 
   if (loading) {
     return (
-      <View className="flex-1 justify-center items-center">
-        <ActivityIndicator size="large" color="#3B82F6" />
+      <View className="flex-1 justify-center items-center" style={{ backgroundColor: colors[isDark ? 'dark' : 'light'].background.primary }}>
+        <ActivityIndicator size="large" color={colors[isDark ? 'dark' : 'light'].accent.primary} />
       </View>
     );
   }
@@ -65,20 +68,44 @@ export function ProblemFeed() {
       data={problems}
       keyExtractor={(item) => item.id}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        <RefreshControl 
+          refreshing={refreshing} 
+          onRefresh={onRefresh}
+          tintColor={colors[isDark ? 'dark' : 'light'].accent.primary}
+        />
       }
       contentContainerClassName="px-4 py-2"
+      style={{ backgroundColor: colors[isDark ? 'dark' : 'light'].background.primary }}
       renderItem={({ item }) => (
-        <View className="bg-white rounded-xl p-4 mb-4 shadow-sm border border-gray-100">
-          <Text className="text-lg text-gray-800 mb-2">{item.description}</Text>
-          <Text className="text-sm text-gray-500">
+        <View 
+          className="rounded-xl p-4 mb-4 shadow-sm border"
+          style={{ 
+            backgroundColor: colors[isDark ? 'dark' : 'light'].background.secondary,
+            borderColor: colors[isDark ? 'dark' : 'light'].border.primary
+          }}
+        >
+          <Text 
+            className="text-lg mb-2"
+            style={{ color: colors[isDark ? 'dark' : 'light'].text.primary }}
+          >
+            {item.description}
+          </Text>
+          <Text 
+            className="text-sm"
+            style={{ color: colors[isDark ? 'dark' : 'light'].text.secondary }}
+          >
             {formatDate(item.created_at)}
           </Text>
         </View>
       )}
       ListEmptyComponent={
         <View className="flex-1 justify-center items-center py-8">
-          <Text className="text-gray-500 text-lg">No problems shared yet</Text>
+          <Text 
+            className="text-lg"
+            style={{ color: colors[isDark ? 'dark' : 'light'].text.secondary }}
+          >
+            No problems shared yet
+          </Text>
         </View>
       }
     />

@@ -1,24 +1,15 @@
-import { Link, Stack } from 'expo-router';
-import { Text } from 'react-native';
-
-import { Container } from '~/src/components/Container';
+import { Link } from 'expo-router';
+import { Text, View, Pressable } from 'react-native';
 
 export default function NotFoundScreen() {
   return (
-    <>
-      <Stack.Screen options={{ title: 'Oops!' }} />
-      <Container>
-        <Text className={styles.title}>This screen doesn't exist.</Text>
-        <Link href="/" className={styles.link}>
-          <Text className={styles.linkText}>Go to home screen!</Text>
-        </Link>
-      </Container>
-    </>
+    <View className="flex-1 justify-center items-center px-4">
+      <Text className="text-2xl font-bold mb-4">This screen doesn't exist.</Text>
+      <Link href="/" asChild>
+        <Pressable>
+          <Text className="text-blue-500">Go to home screen!</Text>
+        </Pressable>
+      </Link>
+    </View>
   );
 }
-
-const styles = {
-  title: `text-xl font-bold`,
-  link: `mt-4 pt-4`,
-  linkText: `text-base text-[#2e78b7]`,
-};
