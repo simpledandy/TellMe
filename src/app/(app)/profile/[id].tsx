@@ -33,6 +33,7 @@ export default function ProfilePage() {
   const fetchProfile = async () => {
     try {
       const result = await getProfile(id);
+      console.log('Profile data:', JSON.stringify(result, null, 2));
       setProfile(result);
     } catch (error) {
       console.error('Error fetching profile:', error);
@@ -185,22 +186,33 @@ export default function ProfilePage() {
 
       {((profile.interests && profile.interests.length > 0) || (profile.skills && profile.skills.length > 0)) && (
         <View style={[styles.section, { backgroundColor: theme.background.secondary }]}>
-          {profile.interests && profile.interests.length > 0 && (
+          {profile.interests && (
             <View style={styles.tagsContainer}>
               <Text style={[styles.sectionTitle, { color: theme.text.primary }]}>
                 Interests
               </Text>
               <View style={styles.tags}>
-                {profile.interests.map((interest) => (
-                  <View
-                    key={interest}
-                    style={[styles.tag, { backgroundColor: theme.accent.secondary }]}
-                  >
-                    <Text style={[styles.tagText, { color: theme.accent.primary }]}>
-                      {interest}
-                    </Text>
-                  </View>
-                ))}
+                {Array.isArray(profile.interests) 
+                  ? profile.interests.map((interest) => (
+                      <View
+                        key={interest}
+                        style={[styles.tag, { backgroundColor: theme.accent.secondary }]}
+                      >
+                        <Text style={[styles.tagText, { color: theme.accent.primary }]}>
+                          {interest}
+                        </Text>
+                      </View>
+                    ))
+                  : typeof profile.interests === 'string' && (
+                      <View
+                        style={[styles.tag, { backgroundColor: theme.accent.secondary }]}
+                      >
+                        <Text style={[styles.tagText, { color: theme.accent.primary }]}>
+                          {profile.interests}
+                        </Text>
+                      </View>
+                    )
+                }
               </View>
             </View>
           )}

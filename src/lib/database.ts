@@ -28,6 +28,9 @@ export async function getProfile(userId: string): Promise<Profile | null> {
             id: userId,
             username: `user_${userId.slice(0, 8)}`, // Generate a temporary username
             reputation: 0,
+            interests: [], // Initialize empty interests array
+            skills: [], // Initialize empty skills array
+            social_links: {} // Initialize empty social links object
           })
           .select()
           .single();
@@ -42,6 +45,15 @@ export async function getProfile(userId: string): Promise<Profile | null> {
       
       console.error('Error fetching profile:', error);
       return null;
+    }
+
+    // Ensure interests is always an array
+    if (data) {
+      if (typeof data.interests === 'string') {
+        data.interests = [data.interests];
+      } else if (!Array.isArray(data.interests)) {
+        data.interests = [];
+      }
     }
 
     return data;
