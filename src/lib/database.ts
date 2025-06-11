@@ -10,27 +10,62 @@ export type ProblemSuggestion = Database['public']['Tables']['problem_suggestion
 export type Notification = Database['public']['Tables']['notifications']['Row'];
 
 // Profile operations
-export async function getProfile(userId: string) {
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', userId)
-    .single();
-  
-  if (error) throw error;
-  return data;
+export async function getProfile(userId: string): Promise<Profile | null> {
+  try {
+    // First try to get the existing profile
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+
+    if (error) {
+      // If the error is "no rows returned", create a new profile
+      if (error.code === 'PGRST116') {
+        const { data: newProfile, error: createError } = await supabase
+          .from('profiles')
+          .insert({
+            id: userId,
+            username: `user_${userId.slice(0, 8)}`, // Generate a temporary username
+            reputation: 0,
+          })
+          .select()
+          .single();
+
+        if (createError) {
+          console.error('Error creating profile:', createError);
+          return null;
+        }
+
+        return newProfile;
+      }
+      
+      console.error('Error fetching profile:', error);
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error in getProfile:', error);
+    return null;
+  }
 }
 
-export async function updateProfile(userId: string, updates: Partial<Profile>) {
-  const { data, error } = await supabase
-    .from('profiles')
-    .update(updates)
-    .eq('id', userId)
-    .select()
-    .single();
-  
-  if (error) throw error;
-  return data;
+export async function updateProfile(userId: string, updates: Partial<Profile>): Promise<void> {
+  try {
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        ...updates,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', userId);
+
+    if (error) throw error;
+  } catch (error) {
+    console.error('Error updating profile:', error);
+    throw error;
+  }
 }
 
 // Problem operations

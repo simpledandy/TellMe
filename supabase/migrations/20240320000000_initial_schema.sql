@@ -18,6 +18,14 @@ CREATE TABLE public.profiles (
     avatar_url TEXT,
     bio TEXT,
     reputation INTEGER DEFAULT 0,
+    location TEXT,
+    website TEXT,
+    github TEXT,
+    twitter TEXT,
+    linkedin TEXT,
+    instagram TEXT,
+    interests TEXT[],
+    skills TEXT[],
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
@@ -136,6 +144,10 @@ CREATE POLICY "Public profiles are viewable by everyone"
 CREATE POLICY "Users can update their own profile"
     ON public.profiles FOR UPDATE
     USING (auth.uid() = id);
+
+CREATE POLICY "Users can create their own profile"
+    ON public.profiles FOR INSERT
+    WITH CHECK (auth.uid() = id);
 
 -- Problem Categories
 CREATE POLICY "Categories are viewable by everyone"
