@@ -9,7 +9,7 @@ import { ROUTES } from '~/src/lib/routes';
 
 export default function AppLayout() {
   const router = useRouter();
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const { isDark } = useTheme();
   const theme = colors[isDark ? 'dark' : 'light'];
 
@@ -42,14 +42,6 @@ export default function AppLayout() {
               >
                 <Ionicons name="person-circle-outline" size={24} color={theme.text.primary} />
               </Pressable>
-              {user && (
-                <Pressable
-                  onPress={signOut}
-                  className="px-2"
-                >
-                  <Text style={{ color: theme.text.primary }}>Sign Out</Text>
-                </Pressable>
-              )}
             </View>
           ),
         }}

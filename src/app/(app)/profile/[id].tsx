@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, Pressable, Linking } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image, Pressable, Linking, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { colors } from '../../../theme/colors';
 import { getProfile, Profile, getProblems } from '../../../lib/database';
+import { useAuth } from '../../../contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 
 interface SocialLink {
@@ -17,9 +18,12 @@ export default function ProfilePage() {
   const router = useRouter();
   const { isDark } = useTheme();
   const theme = colors[isDark ? 'dark' : 'light'];
+  const { user, signOut } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [problems, setProblems] = useState<any[]>([]);
+
+  const isOwnProfile = user?.id === id;
 
   useEffect(() => {
     fetchProfile();
@@ -44,6 +48,20 @@ export default function ProfilePage() {
     } catch (error) {
       console.error('Error fetching user problems:', error);
     }
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      router.replace('/auth/sign-in');
+    } catch (error) {
+      console.error('Error signing out:', error);
+      Alert.alert('Error', 'Failed to sign out');
+    }
+  };
+
+  const handleEditProfile = () => {
+    router.push('/profile/edit');
   };
 
   const getSocialLinks = (profile: Profile): SocialLink[] => {
@@ -127,6 +145,28 @@ export default function ProfilePage() {
                 <Ionicons name={link.icon} size={20} color={theme.accent.primary} />
               </Pressable>
             ))}
+          </View>
+        )}
+        {isOwnProfile && (
+          <View style={styles.actionButtons}>
+            <Pressable
+              style={[styles.actionButton, { backgroundColor: theme.accent.primary }]}
+              onPress={handleEditProfile}
+            >
+              <Ionicons name="pencil" size={20} color={theme.text.primary} />
+              <Text style={[styles.actionButtonText, { color: theme.text.primary }]}>
+                Edit Profile
+              </Text>
+            </Pressable>
+            <Pressable
+              style={[styles.actionButton, { backgroundColor: theme.background.primary }]}
+              onPress={handleSignOut}
+            >
+              <Ionicons name="log-out-outline" size={20} color={theme.text.secondary} />
+              <Text style={[styles.actionButtonText, { color: theme.text.secondary }]}>
+                Sign Out
+              </Text>
+            </Pressable>
           </View>
         )}
       </View>
@@ -262,6 +302,23 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  actionButtons: {
+    marginTop: 16,
+    gap: 8,
+    width: '100%',
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+    borderRadius: 8,
+    gap: 8,
+  },
+  actionButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
   },
   section: {
     padding: 16,
