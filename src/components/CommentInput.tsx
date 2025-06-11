@@ -4,6 +4,8 @@ import { useTheme } from '../contexts/ThemeContext';
 import { colors } from '../theme/colors';
 import { createComment } from '../lib/database';
 import { useAuth } from '../contexts/AuthContext';
+import { useRouter } from 'expo-router';
+import { Modal } from './Modal';
 
 interface CommentInputProps {
   problemId: string;
@@ -14,11 +16,18 @@ export function CommentInput({ problemId, onCommentAdded }: CommentInputProps) {
   const { isDark } = useTheme();
   const theme = colors[isDark ? 'dark' : 'light'];
   const { user } = useAuth();
+  const router = useRouter();
   const [content, setContent] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSignInModal, setShowSignInModal] = useState(false);
 
   const handleSubmit = async () => {
-    if (!content.trim() || !user) return;
+    if (!content.trim()) return;
+
+    if (!user) {
+      setShowSignInModal(true);
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -34,6 +43,11 @@ export function CommentInput({ problemId, onCommentAdded }: CommentInputProps) {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleSignIn = () => {
+    setShowSignInModal(false);
+    router.push('/auth/sign-in');
   };
 
   return (
@@ -63,6 +77,25 @@ export function CommentInput({ problemId, onCommentAdded }: CommentInputProps) {
           {isSubmitting ? 'Posting...' : 'Post'}
         </Text>
       </Pressable>
+
+      <Modal
+        visible={showSignInModal}
+        title="Sign In Required"
+        message="Please sign in to leave a comment."
+        buttons={[
+          {
+            text: 'Cancel',
+            onPress: () => setShowSignInModal(false),
+            style: 'cancel',
+          },
+          {
+            text: 'Sign In',
+            onPress: handleSignIn,
+            style: 'default',
+          },
+        ]}
+        onClose={() => setShowSignInModal(false)}
+      />
     </View>
   );
 }

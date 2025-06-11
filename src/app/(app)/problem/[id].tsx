@@ -7,6 +7,19 @@ import { getProblems, Problem } from '../../../lib/database';
 import { CommentList } from '../../../components/CommentList';
 import { CommentInput } from '../../../components/CommentInput';
 
+type ProblemWithRelations = Problem & {
+  categories?: {
+    name: string;
+  } | null;
+  user: {
+    id: string;
+    profiles: {
+      username: string;
+      avatar_url: string | null;
+    } | null;
+  };
+};
+
 const formatDate = (dateString: string) => {
   const date = new Date(dateString);
   const now = new Date();
@@ -29,7 +42,7 @@ export default function ProblemDetails() {
   const router = useRouter();
   const { isDark } = useTheme();
   const theme = colors[isDark ? 'dark' : 'light'];
-  const [problem, setProblem] = useState<Problem | null>(null);
+  const [problem, setProblem] = useState<ProblemWithRelations | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -52,6 +65,31 @@ export default function ProblemDetails() {
   const handleCommentAdded = () => {
     // Refresh the problem to get updated comment count
     fetchProblem();
+  };
+
+  const handleStatusPress = () => {
+    router.push({
+      pathname: '/(app)',
+      params: { status: problem?.status }
+    });
+  };
+
+  const handleCategoryPress = () => {
+    if (problem?.category_id) {
+      router.push({
+        pathname: '/(app)',
+        params: { categoryId: problem.category_id }
+      });
+    }
+  };
+
+  const handleProfilePress = () => {
+    if (problem?.user.id) {
+      router.push({
+        pathname: '/profile/[id]',
+        params: { id: problem.user.id }
+      });
+    }
   };
 
   if (loading) {
@@ -82,9 +120,11 @@ export default function ProblemDetails() {
           <Text style={[styles.metaText, { color: theme.text.tertiary }]}>
             Posted {formatDate(problem.created_at)}
           </Text>
-          <Text style={[styles.metaText, { color: theme.text.tertiary }]}>
-            by {problem.user_id} {/* TODO: Replace with actual username */}
-          </Text>
+          <Pressable onPress={handleProfilePress}>
+            <Text style={[styles.metaText, { color: theme.text.tertiary }]}>
+              by {problem.user.profiles?.username || 'Anonymous'}
+            </Text>
+          </Pressable>
         </View>
         <Text style={[styles.description, { color: theme.text.secondary }]}>
           {problem.description}
@@ -92,19 +132,19 @@ export default function ProblemDetails() {
         <View style={styles.tags}>
           <Pressable
             style={[styles.tag, { backgroundColor: theme.accent.secondary }]}
-            onPress={() => {/* TODO: Filter by status */}}
+            onPress={handleStatusPress}
           >
             <Text style={[styles.tagText, { color: theme.accent.primary }]}>
               {problem.status}
             </Text>
           </Pressable>
-          {problem.category_id && (
+          {problem.categories && (
             <Pressable
               style={[styles.tag, { backgroundColor: theme.accent.secondary }]}
-              onPress={() => {/* TODO: Filter by category */}}
+              onPress={handleCategoryPress}
             >
               <Text style={[styles.tagText, { color: theme.accent.primary }]}>
-                {problem.category_id} {/* TODO: Replace with category name */}
+                {problem.categories.name}
               </Text>
             </Pressable>
           )}

@@ -28,7 +28,20 @@ export default function SignIn() {
       await signIn(email, password);
       setShowSuccessModal(true);
     } catch (error) {
-      Alert.alert('Error', error instanceof Error ? error.message : 'Failed to sign in');
+      let errorMessage = 'Failed to sign in';
+      
+      if (error instanceof Error) {
+        // Handle specific Supabase error codes
+        if (error.message.includes('Invalid login credentials')) {
+          errorMessage = 'Invalid email or password. Please try again.';
+        } else if (error.message.includes('Email not confirmed')) {
+          errorMessage = 'Please verify your email address before signing in.';
+        } else if (error.message.includes('rate limit')) {
+          errorMessage = 'Too many attempts. Please try again later.';
+        }
+      }
+      
+      Alert.alert('Error', errorMessage);
     } finally {
       setLoading(false);
     }
@@ -39,7 +52,7 @@ export default function SignIn() {
     if (params.share) {
       router.replace('/(app)');
     } else {
-      router.back();
+      router.replace('/(app)');
     }
   };
 
@@ -86,6 +99,13 @@ export default function SignIn() {
         title="Sign In"
         onPress={handleSignIn}
         loading={loading}
+        className="mb-4"
+      />
+      
+      <Button
+        title="Not Now"
+        variant="text"
+        onPress={() => router.replace('/(app)')}
         className="mb-4"
       />
       

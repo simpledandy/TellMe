@@ -10,6 +10,7 @@ import { Modal } from '~/src/components/Modal';
 export default function SignUp() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const { signUp } = useAuth();
@@ -17,18 +18,40 @@ export default function SignUp() {
   const router = useRouter();
   const params = useLocalSearchParams<{ share?: string }>();
 
+  const handleEmailChange = (text: string) => {
+    setEmail(text);
+    // Suggest username from email
+    const suggestedUsername = text.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '');
+    setUsername(suggestedUsername);
+  };
+
   const handleSignUp = async () => {
-    if (!email || !password) {
+    if (!email || !password || !username) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
 
     try {
       setLoading(true);
-      await signUp(email, password);
+      await signUp(email, password, username);
       setShowSuccessModal(true);
     } catch (error) {
-      Alert.alert('Error', error instanceof Error ? error.message : 'Failed to sign up');
+      let errorMessage = 'Failed to sign up';
+      
+      if (error instanceof Error) {
+        // Handle specific Supabase error codes
+        if (error.message.includes('duplicate key value')) {
+          errorMessage = 'This email address is already registered. Please sign in instead.';
+        } else if (error.message.includes('password')) {
+          errorMessage = 'Password must be at least 6 characters long.';
+        } else if (error.message.includes('email')) {
+          errorMessage = 'Please enter a valid email address.';
+        } else if (error.message.includes('username')) {
+          errorMessage = 'This username is already taken. Please choose another one.';
+        }
+      }
+      
+      Alert.alert('Error', errorMessage);
     } finally {
       setLoading(false);
     }
@@ -39,7 +62,7 @@ export default function SignUp() {
     if (params.share) {
       router.replace('/(app)');
     } else {
-      router.back();
+      router.replace('/(app)');
     }
   };
 
@@ -59,9 +82,22 @@ export default function SignUp() {
         className="w-full rounded-lg px-4 py-3 mb-4"
         placeholder="Email"
         value={email}
-        onChangeText={setEmail}
+        onChangeText={handleEmailChange}
         autoCapitalize="none"
         keyboardType="email-address"
+        style={{ 
+          backgroundColor: colors[isDark ? 'dark' : 'light'].background.secondary,
+          color: colors[isDark ? 'dark' : 'light'].text.primary
+        }}
+        placeholderTextColor={colors[isDark ? 'dark' : 'light'].text.tertiary}
+      />
+      
+      <TextInput
+        className="w-full rounded-lg px-4 py-3 mb-4"
+        placeholder="Username"
+        value={username}
+        onChangeText={setUsername}
+        autoCapitalize="none"
         style={{ 
           backgroundColor: colors[isDark ? 'dark' : 'light'].background.secondary,
           color: colors[isDark ? 'dark' : 'light'].text.primary
@@ -89,7 +125,14 @@ export default function SignUp() {
         className="mb-4"
       />
       
-      <View className="flex-row justify-center">
+      <Button
+        title="Not Now"
+        variant="text"
+        onPress={() => router.replace('/(app)')}
+        className="mb-4"
+      />
+      
+      <View className="flex-row justify-center items-center">
         <Text 
           className="text-gray-600"
           style={{ color: colors[isDark ? 'dark' : 'light'].text.secondary }}
