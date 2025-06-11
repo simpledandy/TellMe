@@ -18,12 +18,7 @@ export default function EditProfilePage() {
     username: '',
     full_name: '',
     bio: '',
-    location: '',
-    website: '',
-    github: '',
-    twitter: '',
-    linkedin: '',
-    instagram: '',
+    social_links: {},
     interests: [],
     skills: [],
   });
@@ -67,6 +62,16 @@ export default function EditProfilePage() {
   const handleArrayInput = (field: 'interests' | 'skills', value: string) => {
     const items = value.split(',').map(item => item.trim()).filter(Boolean);
     setProfile(prev => ({ ...prev, [field]: items }));
+  };
+
+  const handleSocialLinkChange = (platform: string, value: string) => {
+    setProfile(prev => ({
+      ...prev,
+      social_links: {
+        ...prev.social_links,
+        [platform]: value
+      }
+    }));
   };
 
   if (loading) {
@@ -130,20 +135,6 @@ export default function EditProfilePage() {
               numberOfLines={4}
             />
           </View>
-          <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: theme.text.secondary }]}>Location</Text>
-            <TextInput
-              style={[styles.input, { 
-                backgroundColor: theme.background.primary,
-                color: theme.text.primary,
-                borderColor: theme.border
-              }]}
-              value={profile.location}
-              onChangeText={(text) => setProfile(prev => ({ ...prev, location: text }))}
-              placeholder="Enter location"
-              placeholderTextColor={theme.text.tertiary}
-            />
-          </View>
         </View>
 
         <View style={styles.section}>
@@ -158,8 +149,8 @@ export default function EditProfilePage() {
                 color: theme.text.primary,
                 borderColor: theme.border
               }]}
-              value={profile.website}
-              onChangeText={(text) => setProfile(prev => ({ ...prev, website: text }))}
+              value={profile.social_links?.website}
+              onChangeText={(text) => handleSocialLinkChange('website', text)}
               placeholder="https://your-website.com"
               placeholderTextColor={theme.text.tertiary}
               keyboardType="url"
@@ -173,8 +164,8 @@ export default function EditProfilePage() {
                 color: theme.text.primary,
                 borderColor: theme.border
               }]}
-              value={profile.github}
-              onChangeText={(text) => setProfile(prev => ({ ...prev, github: text }))}
+              value={profile.social_links?.github}
+              onChangeText={(text) => handleSocialLinkChange('github', text)}
               placeholder="github.com/username"
               placeholderTextColor={theme.text.tertiary}
             />
@@ -187,8 +178,8 @@ export default function EditProfilePage() {
                 color: theme.text.primary,
                 borderColor: theme.border
               }]}
-              value={profile.twitter}
-              onChangeText={(text) => setProfile(prev => ({ ...prev, twitter: text }))}
+              value={profile.social_links?.twitter}
+              onChangeText={(text) => handleSocialLinkChange('twitter', text)}
               placeholder="twitter.com/username"
               placeholderTextColor={theme.text.tertiary}
             />
@@ -201,8 +192,8 @@ export default function EditProfilePage() {
                 color: theme.text.primary,
                 borderColor: theme.border
               }]}
-              value={profile.linkedin}
-              onChangeText={(text) => setProfile(prev => ({ ...prev, linkedin: text }))}
+              value={profile.social_links?.linkedin}
+              onChangeText={(text) => handleSocialLinkChange('linkedin', text)}
               placeholder="linkedin.com/in/username"
               placeholderTextColor={theme.text.tertiary}
             />
@@ -215,8 +206,8 @@ export default function EditProfilePage() {
                 color: theme.text.primary,
                 borderColor: theme.border
               }]}
-              value={profile.instagram}
-              onChangeText={(text) => setProfile(prev => ({ ...prev, instagram: text }))}
+              value={profile.social_links?.instagram}
+              onChangeText={(text) => handleSocialLinkChange('instagram', text)}
               placeholder="instagram.com/username"
               placeholderTextColor={theme.text.tertiary}
             />
@@ -257,26 +248,15 @@ export default function EditProfilePage() {
           </View>
         </View>
 
-        <View style={styles.buttonContainer}>
-          <Pressable
-            style={[styles.button, { backgroundColor: theme.accent.primary }]}
-            onPress={handleSave}
-            disabled={saving}
-          >
-            <Text style={[styles.buttonText, { color: theme.text.primary }]}>
-              {saving ? 'Saving...' : 'Save Changes'}
-            </Text>
-          </Pressable>
-          <Pressable
-            style={[styles.button, { backgroundColor: theme.background.primary }]}
-            onPress={() => router.back()}
-            disabled={saving}
-          >
-            <Text style={[styles.buttonText, { color: theme.text.secondary }]}>
-              Cancel
-            </Text>
-          </Pressable>
-        </View>
+        <Pressable
+          style={[styles.saveButton, { backgroundColor: theme.accent.primary }]}
+          onPress={handleSave}
+          disabled={saving}
+        >
+          <Text style={[styles.saveButtonText, { color: theme.text.primary }]}>
+            {saving ? 'Saving...' : 'Save Changes'}
+          </Text>
+        </Pressable>
       </View>
     </ScrollView>
   );
@@ -305,38 +285,32 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   input: {
-    height: 48,
+    height: 40,
     borderWidth: 1,
     borderRadius: 8,
     paddingHorizontal: 12,
-    fontSize: 16,
   },
   textArea: {
     borderWidth: 1,
     borderRadius: 8,
     paddingHorizontal: 12,
-    paddingVertical: 12,
-    fontSize: 16,
+    paddingVertical: 8,
     minHeight: 100,
-    textAlignVertical: 'top',
   },
-  buttonContainer: {
-    gap: 12,
-    marginTop: 24,
-  },
-  button: {
+  saveButton: {
     height: 48,
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
+    marginTop: 16,
   },
-  buttonText: {
+  saveButtonText: {
     fontSize: 16,
     fontWeight: '600',
   },
   loadingText: {
-    textAlign: 'center',
-    marginTop: 32,
     fontSize: 16,
+    textAlign: 'center',
+    marginTop: 20,
   },
 }); 

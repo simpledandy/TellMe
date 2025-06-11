@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, StyleSheet, Pressable } from 'react-native';
+import { View, Text, FlatList, StyleSheet, Pressable, Image } from 'react-native';
 import { useTheme } from '../contexts/ThemeContext';
 import { colors } from '../theme/colors';
 import { getComments, Comment } from '../lib/database';
+import { useAuth } from '../contexts/AuthContext';
+import { useRouter } from 'expo-router';
 
 interface CommentWithUser extends Comment {
   user: {
@@ -22,6 +24,8 @@ interface CommentListProps {
 export function CommentList({ problemId, onCommentPress }: CommentListProps) {
   const { isDark } = useTheme();
   const theme = colors[isDark ? 'dark' : 'light'];
+  const { user } = useAuth();
+  const router = useRouter();
   const [comments, setComments] = useState<CommentWithUser[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -57,24 +61,65 @@ export function CommentList({ problemId, onCommentPress }: CommentListProps) {
     });
   };
 
-  const renderComment = ({ item: comment }: { item: CommentWithUser }) => (
-    <Pressable
-      style={[styles.commentCard, { backgroundColor: theme.background.secondary }]}
-      onPress={() => onCommentPress?.(comment)}
-    >
-      <View style={styles.commentHeader}>
-        <Text style={[styles.username, { color: theme.text.primary }]}>
-          {comment.user.profiles?.username || 'Anonymous'}
+  const handleProfilePress = (userId: string) => {
+    router.push({
+      pathname: '/profile/[id]',
+      params: { id: userId }
+    });
+  };
+
+  const renderComment = ({ item: comment }: { item: CommentWithUser }) => {
+    const isCurrentUser = user?.id === comment.user.id;
+    
+    return (
+      <Pressable
+        style={[
+          styles.commentCard,
+          { 
+            backgroundColor: isCurrentUser ? theme.accent.secondary : theme.background.secondary,
+            borderLeftWidth: 3,
+            borderLeftColor: isCurrentUser ? theme.accent.primary : 'transparent'
+          }
+        ]}
+        onPress={() => onCommentPress?.(comment)}
+      >
+        <View style={styles.commentHeader}>
+          <Pressable
+            style={styles.userInfo}
+            onPress={() => handleProfilePress(comment.user.id)}
+          >
+            {comment.user.profiles?.avatar_url ? (
+              <Image
+                source={{ uri: comment.user.profiles.avatar_url }}
+                style={styles.avatar}
+              />
+            ) : (
+              <View style={[styles.avatar, { backgroundColor: theme.accent.primary }]}>
+                <Text style={[styles.avatarText, { color: '#fff' }]}>
+                  {comment.user.profiles?.username?.[0]?.toUpperCase() || '?'}
+                </Text>
+              </View>
+            )}
+            <Text style={[
+              styles.username,
+              { 
+                color: isCurrentUser ? theme.accent.primary : theme.text.primary,
+                fontWeight: isCurrentUser ? '600' : '500'
+              }
+            ]}>
+              {comment.user.profiles?.username || 'Anonymous'}
+            </Text>
+          </Pressable>
+          <Text style={[styles.timestamp, { color: theme.text.tertiary }]}>
+            {formatDate(comment.created_at)}
+          </Text>
+        </View>
+        <Text style={[styles.content, { color: theme.text.secondary }]}>
+          {comment.content}
         </Text>
-        <Text style={[styles.timestamp, { color: theme.text.tertiary }]}>
-          {formatDate(comment.created_at)}
-        </Text>
-      </View>
-      <Text style={[styles.content, { color: theme.text.secondary }]}>
-        {comment.content}
-      </Text>
-    </Pressable>
-  );
+      </Pressable>
+    );
+  };
 
   if (loading) {
     return (
@@ -124,9 +169,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 8,
   },
+  userInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  avatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
   username: {
     fontSize: 14,
-    fontWeight: '600',
   },
   timestamp: {
     fontSize: 12,

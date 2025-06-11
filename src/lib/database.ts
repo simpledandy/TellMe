@@ -109,13 +109,33 @@ export async function getProblems(options: {
       }
     }
 
-    const { data, error } = await query;
+    const { data: problems, error } = await query;
 
     if (error) {
       throw error;
     }
 
-    return data;
+    // Get all unique user IDs from the problems
+    const userIds = [...new Set(problems.map(problem => problem.user_id))];
+
+    // Fetch profiles for all users
+    const { data: profiles, error: profilesError } = await supabase
+      .from('profiles')
+      .select('id, username, avatar_url')
+      .in('id', userIds);
+
+    if (profilesError) {
+      throw profilesError;
+    }
+
+    // Transform the data to match the expected structure
+    return problems.map(problem => ({
+      ...problem,
+      user: {
+        id: problem.user_id,
+        profiles: profiles?.find(p => p.id === problem.user_id) || null
+      }
+    }));
   } catch (error) {
     console.error('Error fetching problems:', error);
     throw error;

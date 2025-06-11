@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, RefreshControl, ActivityIndicator, Pressable, StyleSheet } from 'react-native';
+import { View, Text, FlatList, RefreshControl, ActivityIndicator, Pressable, StyleSheet, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '~/src/contexts/ThemeContext';
 import { colors } from '~/src/theme/colors';
 import { Problem, getProblems, getCategories, ProblemCategory } from '~/src/lib/database';
 import { Button } from './Button';
 import { Modal } from './Modal';
+import { useAuth } from '~/src/contexts/AuthContext';
 
 const formatDate = (dateString: string) => {
   const date = new Date(dateString);
@@ -33,6 +34,13 @@ type ProblemWithRelations = Problem & {
   categories?: {
     name: string;
   } | null;
+  user: {
+    id: string;
+    profiles: {
+      username: string;
+      avatar_url: string | null;
+    } | null;
+  };
 };
 
 function FilterContent({ filters, setFilters, categories }: { 
@@ -118,6 +126,7 @@ export function ProblemFeed() {
   const router = useRouter();
   const { isDark } = useTheme();
   const theme = colors[isDark ? 'dark' : 'light'];
+  const { user } = useAuth();
   const [problems, setProblems] = useState<ProblemWithRelations[]>([]);
   const [categories, setCategories] = useState<ProblemCategory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -163,40 +172,81 @@ export function ProblemFeed() {
     });
   };
 
-  const renderProblem = ({ item }: { item: ProblemWithRelations }) => (
-    <Pressable
-      key={item.id}
-      style={[styles.problemCard, { backgroundColor: theme.background.secondary }]}
-      onPress={() => handleProblemPress(item.id)}
-    >
-      <Text style={[styles.problemTitle, { color: theme.text.primary }]}>{item.title}</Text>
-      <Text style={[styles.problemDescription, { color: theme.text.secondary }]} numberOfLines={2}>
-        {item.description}
-      </Text>
-      <View style={styles.problemMeta}>
-        <Text style={[styles.metaText, { color: theme.text.tertiary }]}>
-          Posted {formatDate(item.created_at)}
+  const handleProfilePress = (userId: string) => {
+    router.push({
+      pathname: '/profile/[id]',
+      params: { id: userId }
+    });
+  };
+
+  const renderProblem = ({ item }: { item: ProblemWithRelations }) => {
+    const isCurrentUser = user?.id === item.user.id;
+    
+    return (
+      <Pressable
+        key={item.id}
+        style={[
+          styles.problemCard,
+          { 
+            backgroundColor: isCurrentUser ? theme.accent.secondary : theme.background.secondary,
+            borderLeftWidth: 3,
+            borderLeftColor: isCurrentUser ? theme.accent.primary : 'transparent'
+          }
+        ]}
+        onPress={() => handleProblemPress(item.id)}
+      >
+        <Text style={[styles.problemTitle, { color: theme.text.primary }]}>{item.title}</Text>
+        <Text style={[styles.problemDescription, { color: theme.text.secondary }]} numberOfLines={2}>
+          {item.description}
         </Text>
-        <Text style={[styles.metaText, { color: theme.text.tertiary }]}>
-          by {item.user_id} {/* TODO: Replace with actual username */}
-        </Text>
-      </View>
-      <View style={styles.tags}>
-        <View style={[styles.tag, { backgroundColor: theme.accent.secondary }]}>
-          <Text style={[styles.tagText, { color: theme.accent.primary }]}>
-            {item.status}
+        <View style={styles.problemMeta}>
+          <Text style={[styles.metaText, { color: theme.text.tertiary }]}>
+            Posted {formatDate(item.created_at)}
           </Text>
+          <Pressable
+            style={styles.userInfo}
+            onPress={() => handleProfilePress(item.user.id)}
+          >
+            {item.user.profiles?.avatar_url ? (
+              <Image
+                source={{ uri: item.user.profiles.avatar_url }}
+                style={styles.avatar}
+              />
+            ) : (
+              <View style={[styles.avatar, { backgroundColor: theme.accent.primary }]}>
+                <Text style={[styles.avatarText, { color: '#fff' }]}>
+                  {item.user.profiles?.username?.[0]?.toUpperCase() || '?'}
+                </Text>
+              </View>
+            )}
+            <Text style={[
+              styles.username,
+              { 
+                color: isCurrentUser ? theme.accent.primary : theme.text.tertiary,
+                fontWeight: isCurrentUser ? '600' : '500'
+              }
+            ]}>
+              {item.user.profiles?.username || 'Anonymous'}
+            </Text>
+          </Pressable>
         </View>
-        {item.categories && (
+        <View style={styles.tags}>
           <View style={[styles.tag, { backgroundColor: theme.accent.secondary }]}>
             <Text style={[styles.tagText, { color: theme.accent.primary }]}>
-              {item.categories.name}
+              {item.status}
             </Text>
           </View>
-        )}
-      </View>
-    </Pressable>
-  );
+          {item.categories && (
+            <View style={[styles.tag, { backgroundColor: theme.accent.secondary }]}>
+              <Text style={[styles.tagText, { color: theme.accent.primary }]}>
+                {item.categories.name}
+              </Text>
+            </View>
+          )}
+        </View>
+      </Pressable>
+    );
+  };
 
   if (loading) {
     return (
@@ -344,5 +394,24 @@ const styles = StyleSheet.create({
   filterOptionText: {
     fontSize: 14,
     fontWeight: '500',
+  },
+  userInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  avatar: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  username: {
+    fontSize: 12,
   },
 }); 

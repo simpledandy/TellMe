@@ -65,13 +65,25 @@ export default function ProfilePage() {
   };
 
   const getSocialLinks = (profile: Profile): SocialLink[] => {
-    return [
-      { platform: 'Website', url: profile.website, icon: 'globe-outline' },
-      { platform: 'GitHub', url: profile.github, icon: 'logo-github' },
-      { platform: 'Twitter', url: profile.twitter, icon: 'logo-twitter' },
-      { platform: 'LinkedIn', url: profile.linkedin, icon: 'logo-linkedin' },
-      { platform: 'Instagram', url: profile.instagram, icon: 'logo-instagram' },
-    ].filter(link => link.url);
+    const links: SocialLink[] = [];
+    if (profile.social_links) {
+      if (profile.social_links.website) {
+        links.push({ platform: 'Website', url: profile.social_links.website, icon: 'globe-outline' });
+      }
+      if (profile.social_links.github) {
+        links.push({ platform: 'GitHub', url: profile.social_links.github, icon: 'logo-github' });
+      }
+      if (profile.social_links.twitter) {
+        links.push({ platform: 'Twitter', url: profile.social_links.twitter, icon: 'logo-twitter' });
+      }
+      if (profile.social_links.linkedin) {
+        links.push({ platform: 'LinkedIn', url: profile.social_links.linkedin, icon: 'logo-linkedin' });
+      }
+      if (profile.social_links.instagram) {
+        links.push({ platform: 'Instagram', url: profile.social_links.instagram, icon: 'logo-instagram' });
+      }
+    }
+    return links;
   };
 
   if (loading) {
@@ -171,9 +183,9 @@ export default function ProfilePage() {
         )}
       </View>
 
-      {(profile.interests?.length > 0 || profile.skills?.length > 0) && (
+      {((profile.interests && profile.interests.length > 0) || (profile.skills && profile.skills.length > 0)) && (
         <View style={[styles.section, { backgroundColor: theme.background.secondary }]}>
-          {profile.interests?.length > 0 && (
+          {profile.interests && profile.interests.length > 0 && (
             <View style={styles.tagsContainer}>
               <Text style={[styles.sectionTitle, { color: theme.text.primary }]}>
                 Interests
@@ -192,7 +204,7 @@ export default function ProfilePage() {
               </View>
             </View>
           )}
-          {profile.skills?.length > 0 && (
+          {profile.skills && profile.skills.length > 0 && (
             <View style={styles.tagsContainer}>
               <Text style={[styles.sectionTitle, { color: theme.text.primary }]}>
                 Skills
