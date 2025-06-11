@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
-import { View, TextInput, KeyboardAvoidingView, Platform, Text, Animated, Pressable } from 'react-native';
+import { View, TextInput, KeyboardAvoidingView, Platform, Text, Animated, Pressable, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
-import { supabase } from '~/utils/supabase';
 import { useAuth } from '~/src/contexts/AuthContext';
 import { Button } from '~/src/components/Button';
 import { Modal } from '~/src/components/Modal';
 import { colors } from '~/src/theme/colors';
 import { useTheme } from '~/src/contexts/ThemeContext';
-import { DarkTheme } from '@react-navigation/native';
+import { createProblem } from '~/src/lib/database';
 
 type ThemeMode = 'light' | 'dark' | 'system';
 
@@ -24,7 +23,8 @@ interface AlertModal {
 
 export default function MainScreen() {
   const [isEditing, setIsEditing] = useState(false);
-  const [inputText, setInputText] = useState('');
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
   const [fadeAnim] = useState(new Animated.Value(1));
   const router = useRouter();
   const { isDark } = useTheme();
@@ -43,7 +43,8 @@ export default function MainScreen() {
 
   const resetScreen = () => {
     setIsEditing(false);
-    setInputText('');
+    setTitle('');
+    setDescription('');
   };
 
   const handleShare = async () => {
@@ -74,11 +75,11 @@ export default function MainScreen() {
       return;
     }
 
-    if (!inputText.trim()) {
+    if (!title.trim() || !description.trim()) {
       setAlertModal({
         visible: true,
-        title: 'Empty Problem',
-        message: 'Please enter your problem before sharing.',
+        title: 'Empty Fields',
+        message: 'Please enter both title and description before sharing.',
         buttons: [
           {
             text: 'OK',
@@ -91,16 +92,15 @@ export default function MainScreen() {
     }
 
     try {
-      const { error } = await supabase
-        .from('problems')
-        .insert([
-          {
-            description: inputText.trim(),
-            user_id: user.id,
-          },
-        ]);
-
-      if (error) throw error;
+      await createProblem({
+        user_id: user.id,
+        title: title.trim(),
+        description: description.trim(),
+        status: 'open',
+        is_public: true,
+        category_id: null,
+        solved_at: null
+      });
 
       setAlertModal({
         visible: true,
@@ -167,54 +167,58 @@ export default function MainScreen() {
           />
         </Animated.View>
       ) : (
-        <View className="flex-1 px-6">
-          <View className="flex-1 justify-center">
-            <View className="relative">
-              <Text 
-                className="text-4xl font-light absolute w-full text-center"
-                style={{ 
-                  display: inputText.length > 0 ? 'none' : 'flex',
-                  color: colors[isDark ? 'dark' : 'light'].text.tertiary
-                }}
-              >
-                Type your problem here...
-              </Text>
-              <TextInput
-                className="text-6xl font-light top-2.5 text-center"
-                value={inputText}
-                onChangeText={setInputText}
-                autoFocus={true}
-                multiline
-                textAlign="center"
-                style={{ color: colors[isDark ? 'dark' : 'light'].text.primary }}
-                cursorColor={colors[isDark ? 'dark' : 'light'].text.primary}
-                placeholderTextColor={colors[isDark ? 'dark' : 'light'].text.tertiary}
-              />
-            </View>
-          </View>
-          <View className="py-4">
+        <ScrollView 
+          className="flex-1 px-6"
+          keyboardShouldPersistTaps="handled"
+        >
+          <TextInput
+            className="w-full rounded-lg px-4 py-3 mb-4 mt-8"
+            placeholder="Title"
+            value={title}
+            onChangeText={setTitle}
+            style={{ 
+              backgroundColor: colors[isDark ? 'dark' : 'light'].background.secondary,
+              color: colors[isDark ? 'dark' : 'light'].text.primary
+            }}
+            placeholderTextColor={colors[isDark ? 'dark' : 'light'].text.tertiary}
+          />
+          
+          <TextInput
+            className="w-full rounded-lg px-4 py-3 mb-6"
+            placeholder="Describe your problem..."
+            value={description}
+            onChangeText={setDescription}
+            multiline
+            numberOfLines={4}
+            textAlignVertical="top"
+            style={{ 
+              backgroundColor: colors[isDark ? 'dark' : 'light'].background.secondary,
+              color: colors[isDark ? 'dark' : 'light'].text.primary,
+              minHeight: 100
+            }}
+            placeholderTextColor={colors[isDark ? 'dark' : 'light'].text.tertiary}
+          />
+
+          <View className="flex-row justify-between mb-8">
             <Button
-              title="Share Problem"
+              title="Cancel"
+              variant="text"
+              onPress={resetScreen}
+            />
+            <Button
+              title="Share"
               onPress={handleShare}
-              size="lg"
-              className="self-end"
-              disabled={inputText.length === 0}
             />
           </View>
-        </View>
+        </ScrollView>
       )}
 
       <Modal
         visible={alertModal.visible}
         title={alertModal.title}
         message={alertModal.message}
-        onClose={() => {
-          setAlertModal({ ...alertModal, visible: false });
-          if (alertModal.title === 'Sign In Required') {
-            resetScreen();
-          }
-        }}
         buttons={alertModal.buttons}
+        onClose={() => setAlertModal({ ...alertModal, visible: false })}
       />
     </KeyboardAvoidingView>
   );

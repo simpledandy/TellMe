@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { ReactNode } from 'react';
 import { View, Text, Modal as RNModal, Pressable, StyleSheet } from 'react-native';
 import { Button } from './Button';
 import { useTheme } from '../contexts/ThemeContext';
@@ -7,16 +7,17 @@ import { colors } from '../theme/colors';
 interface ModalProps {
   visible: boolean;
   title: string;
-  message: string;
+  message?: string;
   onClose: () => void;
   buttons?: {
     text: string;
     onPress: () => void;
     style?: 'default' | 'cancel' | 'destructive';
   }[];
+  children?: ReactNode;
 }
 
-export function Modal({ visible, title, message, onClose, buttons = [] }: ModalProps) {
+export function Modal({ visible, title, message, onClose, buttons = [], children }: ModalProps) {
   const { isDark } = useTheme();
   const theme = colors[isDark ? 'dark' : 'light'];
 
@@ -30,7 +31,10 @@ export function Modal({ visible, title, message, onClose, buttons = [] }: ModalP
       <View style={[styles.overlay, { backgroundColor: 'rgba(0, 0, 0, 0.5)' }]}>
         <View style={[styles.container, { backgroundColor: theme.background.secondary }]}>
           <Text style={[styles.title, { color: theme.text.primary }]}>{title}</Text>
-          <Text style={[styles.message, { color: theme.text.secondary }]}>{message}</Text>
+          {message && (
+            <Text style={[styles.message, { color: theme.text.secondary }]}>{message}</Text>
+          )}
+          {children}
           <View style={styles.buttonContainer}>
             {buttons.length > 0 ? (
               buttons.map((button, index) => (
