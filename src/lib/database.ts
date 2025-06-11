@@ -37,43 +37,54 @@ export async function updateProfile(userId: string, updates: Partial<Profile>) {
 export async function getProblems(options: {
   userId?: string;
   categoryId?: string;
-  status?: Problem['status'];
+  status?: 'open' | 'solved' | 'closed';
   isPublic?: boolean;
   limit?: number;
   offset?: number;
+  problemId?: string;
 }) {
-  let query = supabase
-    .from('problems')
-    .select(`
-      *,
-      categories:category_id (name)
-    `);
+  try {
+    let query = supabase
+      .from('problems')
+      .select(`
+        *,
+        categories:problem_categories(name)
+      `);
 
-  if (options.userId) {
-    query = query.eq('user_id', options.userId);
-  }
-  if (options.categoryId) {
-    query = query.eq('category_id', options.categoryId);
-  }
-  if (options.status) {
-    query = query.eq('status', options.status);
-  }
-  if (options.isPublic !== undefined) {
-    query = query.eq('is_public', options.isPublic);
-  }
+    if (options.problemId) {
+      query = query.eq('id', options.problemId);
+    } else {
+      if (options.userId) {
+        query = query.eq('user_id', options.userId);
+      }
+      if (options.categoryId) {
+        query = query.eq('category_id', options.categoryId);
+      }
+      if (options.status) {
+        query = query.eq('status', options.status);
+      }
+      if (options.isPublic !== undefined) {
+        query = query.eq('is_public', options.isPublic);
+      }
+      if (options.limit) {
+        query = query.limit(options.limit);
+      }
+      if (options.offset) {
+        query = query.range(options.offset, options.offset + (options.limit || 10) - 1);
+      }
+    }
 
-  query = query.order('created_at', { ascending: false });
+    const { data, error } = await query;
 
-  if (options.limit) {
-    query = query.limit(options.limit);
-  }
-  if (options.offset) {
-    query = query.range(options.offset, options.offset + (options.limit || 10) - 1);
-  }
+    if (error) {
+      throw error;
+    }
 
-  const { data, error } = await query;
-  if (error) throw error;
-  return data;
+    return data;
+  } catch (error) {
+    console.error('Error fetching problems:', error);
+    throw error;
+  }
 }
 
 export async function createProblem(problem: Omit<Problem, 'id' | 'created_at' | 'updated_at'>) {
@@ -110,17 +121,33 @@ export async function deleteProblem(problemId: string) {
 
 // Comment operations
 export async function getComments(problemId: string) {
-  const { data, error } = await supabase
+  // First, get the comments
+  const { data: comments, error: commentsError } = await supabase
     .from('comments')
-    .select(`
-      *,
-      profiles:user_id (username, avatar_url)
-    `)
+    .select('*')
     .eq('problem_id', problemId)
     .order('created_at', { ascending: true });
   
-  if (error) throw error;
-  return data;
+  if (commentsError) throw commentsError;
+  if (!comments) return [];
+
+  // Then, get the profiles for all users who commented
+  const userIds = [...new Set(comments.map(comment => comment.user_id))];
+  const { data: profiles, error: profilesError } = await supabase
+    .from('profiles')
+    .select('id, username, avatar_url')
+    .in('id', userIds);
+
+  if (profilesError) throw profilesError;
+
+  // Combine the data
+  return comments.map(comment => ({
+    ...comment,
+    user: {
+      id: comment.user_id,
+      profiles: profiles?.find(p => p.id === comment.user_id) || null
+    }
+  }));
 }
 
 export async function createComment(comment: Omit<Comment, 'id' | 'created_at' | 'updated_at'>) {

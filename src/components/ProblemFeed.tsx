@@ -1,10 +1,28 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, RefreshControl, ActivityIndicator, Pressable, StyleSheet } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useTheme } from '~/src/contexts/ThemeContext';
 import { colors } from '~/src/theme/colors';
 import { Problem, getProblems, getCategories, ProblemCategory } from '~/src/lib/database';
 import { Button } from './Button';
 import { Modal } from './Modal';
+
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+  
+  if (diffInSeconds < 60) return 'just now';
+  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+  if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
+  
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  });
+};
 
 type FilterOptions = {
   status?: 'open' | 'solved' | 'closed';
@@ -14,7 +32,7 @@ type FilterOptions = {
 type ProblemWithRelations = Problem & {
   categories?: {
     name: string;
-  };
+  } | null;
 };
 
 function FilterContent({ filters, setFilters, categories }: { 
@@ -97,6 +115,7 @@ function FilterContent({ filters, setFilters, categories }: {
 }
 
 export function ProblemFeed() {
+  const router = useRouter();
   const { isDark } = useTheme();
   const theme = colors[isDark ? 'dark' : 'light'];
   const [problems, setProblems] = useState<ProblemWithRelations[]>([]);
@@ -137,33 +156,43 @@ export function ProblemFeed() {
     fetchProblems();
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
+  const handleProblemPress = (problemId: string) => {
+    router.push({
+      pathname: '/problem/[id]',
+      params: { id: problemId }
     });
   };
 
   const renderProblem = ({ item }: { item: ProblemWithRelations }) => (
     <Pressable
+      key={item.id}
       style={[styles.problemCard, { backgroundColor: theme.background.secondary }]}
-      onPress={() => {/* TODO: Navigate to problem details */}}
+      onPress={() => handleProblemPress(item.id)}
     >
       <Text style={[styles.problemTitle, { color: theme.text.primary }]}>{item.title}</Text>
       <Text style={[styles.problemDescription, { color: theme.text.secondary }]} numberOfLines={2}>
         {item.description}
       </Text>
       <View style={styles.problemMeta}>
-        <Text style={[styles.problemStatus, { color: theme.text.secondary }]}>
-          {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
+        <Text style={[styles.metaText, { color: theme.text.tertiary }]}>
+          Posted {formatDate(item.created_at)}
         </Text>
-        {item.categories && (
-          <Text style={[styles.problemCategory, { color: theme.text.secondary }]}>
-            {item.categories.name}
+        <Text style={[styles.metaText, { color: theme.text.tertiary }]}>
+          by {item.user_id} {/* TODO: Replace with actual username */}
+        </Text>
+      </View>
+      <View style={styles.tags}>
+        <View style={[styles.tag, { backgroundColor: theme.accent.secondary }]}>
+          <Text style={[styles.tagText, { color: theme.accent.primary }]}>
+            {item.status}
           </Text>
+        </View>
+        {item.categories && (
+          <View style={[styles.tag, { backgroundColor: theme.accent.secondary }]}>
+            <Text style={[styles.tagText, { color: theme.accent.primary }]}>
+              {item.categories.name}
+            </Text>
+          </View>
         )}
       </View>
     </Pressable>
@@ -171,21 +200,23 @@ export function ProblemFeed() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
+      <View style={[styles.container, { backgroundColor: theme.background.primary }]}>
         <ActivityIndicator size="large" color={theme.accent.primary} />
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background.primary }]}>
       <View style={styles.header}>
         <Button
-          title="Filter"
-          onPress={() => setShowFilters(true)}
           variant="secondary"
-          className="mr-2"
-        />
+          onPress={() => setShowFilters(true)}
+          style={styles.filterButton}
+          title="Filter"
+        >
+          Filter
+        </Button>
       </View>
 
       <FlatList
@@ -236,26 +267,20 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    flexDirection: 'row',
     padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(0, 0, 0, 0.1)',
+  },
+  filterButton: {
+    alignSelf: 'flex-start',
   },
   list: {
     padding: 16,
   },
   problemCard: {
     padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderRadius: 8,
+    marginBottom: 16,
   },
   problemTitle: {
     fontSize: 18,
@@ -269,23 +294,29 @@ const styles = StyleSheet.create({
   problemMeta: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    marginBottom: 12,
   },
-  problemStatus: {
+  metaText: {
     fontSize: 12,
+  },
+  tags: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  tag: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  tagText: {
+    fontSize: 12,
+    fontWeight: '500',
     textTransform: 'capitalize',
-  },
-  problemCategory: {
-    fontSize: 12,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   emptyText: {
     textAlign: 'center',
-    fontSize: 16,
     marginTop: 32,
+    fontSize: 16,
   },
   filterContent: {
     padding: 16,
@@ -312,5 +343,6 @@ const styles = StyleSheet.create({
   },
   filterOptionText: {
     fontSize: 14,
+    fontWeight: '500',
   },
 }); 
